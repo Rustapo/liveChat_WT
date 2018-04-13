@@ -27,7 +27,7 @@ if($_POST){
 		$_SESSION['sid']=$sid;
 		$_SESSION['name'] = $name;
 		$_SESSION['login']=true;
-		header("location:supportchat.php");
+		header("location:supportportal.php");
 	}
 	else{
 

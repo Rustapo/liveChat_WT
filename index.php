@@ -135,7 +135,7 @@ if (isset ( $_GET ['logout'] )) {
 		// }
 	?>
 	</div>
-<form name="message" method="GET">
+<form name="message">
 	<input name="usermsg" class="form-control" type="text" id="usermsg" placeholder="Create A Message" />
 	<input name="submitmsg" class="btn btn-default" type="submit" id="submitmsg" value="Send" />
 
@@ -182,15 +182,24 @@ $('div').animate({scrollTop: height});
 function loadmessages()
 {
     $conn= mysqli_connect("localhost","root","","livechat");
-        $query="select createdAt, message from chat where uid=?";
-        $stmt=$conn->prepare($query);
-        $stmt->bind_param("i",$_SESSION['uid']);
-        $stmt->execute();
-        $stmt->bind_result($createdat,$message);
-        while($stmt->fetch())
-        {
-            echo '<div class="msgln">'.$createdat.' <b>'.$_SESSION['name'].'</b>: '.stripslashes(htmlspecialchars($message)).'<br></div>';   
-        }
+    $query="select id from tokens where uid=?";
+    $stmt=$conn->prepare($query);
+    $stmt->bind_param("i",$_SESSION['uid']);
+    $stmt->execute();
+    $stmt->bind_result($tkid);
+    $stmt->fetch();
+    $stmt->close();
+
+    $query="select createdAt, message from chat where token=?";
+    $stmt=$conn->prepare($query);
+    $stmt->bind_param("i",$tkid);
+    $stmt->execute();
+    $stmt->bind_result($createdat,$message);
+    while($stmt->fetch())
+    {
+        echo '<div class="msgln">'.$createdat.' <b>'.$_SESSION['name'].'</b>: '.stripslashes(htmlspecialchars($message)).'<br></div>';   
+    }
+    $stmt->close();
 }
 ?>
 </body>

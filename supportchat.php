@@ -1,81 +1,152 @@
+<!DOCTYPE html>
 <html>
 <head>
+	<title>SCOCS Live Chat</title>
 	<link rel="stylesheet" href="css/style.css">
 	<link rel="stylesheet" href="bootstrap/css/bootstrap.min.css">
 	<script src="js/jquery.min.js"></script>
-	
-	<link href="css/chatstyle.css" rel="stylesheet">
-    <script src="http://code.jquery.com/jquery-1.10.1.min.js"></script>
-    <script src="css/chatscript.js"></script>
-</head>
-
+    
 <?php
-session_start();
-if(isset($_SESSION['login'])){
- ?>
-    <div id="wrapper" style="background-color:#ffa366;color:white">
+
+session_start ();
+$conn= mysqli_connect("localhost","root","","livechat");
+
+
+$query="select id from tokens where uid = ?";
+$stmt=$conn->prepare($query);
+$stmt->bind_param("i",$_GET['userid']);
+$stmt->execute();
+$stmt->bind_result($tkid);
+$stmt->close();
+
+$query="update tokens set sid=? where uid=?";
+$stmt=$conn->prepare($query);
+$stmt->bind_param("ii",$_SESSION['sid'],$_GET['userid']);
+$stmt->execute();
+$stmt->close();
+
+function loadmessages()
+{
+    $conn= mysqli_connect("localhost","root","","livechat");    
+    $query="select id from tokens where sid=?";
+    $stmt=$conn->prepare($query);
+    $stmt->bind_param("i",$_SESSION['sid']);
+    $stmt->execute();
+    $stmt->bind_result($tkid);
+    $stmt->fetch();
+    $stmt->close();
+    
+    $query="select createdAt, message from chat where token=?";
+    $stmt=$conn->prepare($query);
+    $stmt->bind_param("i",$tkid);
+    $stmt->execute();
+    $stmt->bind_result($createdat,$message);
+    while($stmt->fetch())
+    {
+        echo '<div class="msgln">'.$createdat.' <b>'.$_SESSION['name'].'</b>: '.stripslashes(htmlspecialchars($message)).'<br></div>';   
+    }
+    $stmt->close();
+}
+
+/*
+if (isset ( $_POST ['enter'] )) {
+    if ($_POST ['name'] != "") {
+        if(!isset($_SESSION['name']))
+        {
+            $ip = isset($_SERVER['HTTP_CLIENT_IP'])?$_SERVER['HTTP_CLIENT_IP']:isset($_SERVER['HTTP_X_FORWARDED_FOR'])?$_SERVER['HTTP_X_FORWARDED_FOR']:$_SERVER['REMOTE_ADDR'];
+            
+            $_SESSION ['name'] = stripslashes ( htmlspecialchars ( $_POST ['name'] ) );
+            $query="insert into students(name,ip,email,status) values(?,?,?,'Available')";
+            $stmt=$conn->prepare($query);
+            $stmt->bind_param("sss",$_POST['name'],$ip,$_POST['email']);
+            $stmt->execute();
+            $stmt->close();
+            
+            $query="select id from students where email=?";
+            $stmt=$conn->prepare($query);
+            $stmt->bind_param("s",$_POST['email']);
+            $stmt->execute();
+            $stmt->bind_result($userid);
+            $stmt->fetch();
+            $_SESSION['uid']=$userid;
+            $stmt->close();
+        }
+        $conn= mysqli_connect("localhost","root","","livechat");
+        $status="Available";
+        $query="update students set status = ? where id = ?";
+        $stmt=$conn->prepare($query);
+        $stmt->bind_param("si",$status,$_SESSION['uid']);
+        $stmt->execute();
+        $stmt->close();
+
+        if(!isset($_SESSION['token']))
+        {
+            $query="select token from tokens where uid = ?";
+            $stmt=$conn->prepare($query);
+            $stmt->bind_param("i",$_SESSION['uid']);
+            $stmt->execute();
+            $stmt->bind_result($token);
+            if($stmt->fetch())
+            {
+                $_SESSION['token']=$token;
+                $stmt->close();
+            }
+            else
+            {
+                date_default_timezone_set("Asia/Karachi");
+                $time=date("Y-m-d h:i:sa");
+                $token=md5($_SESSION['name'].$_SERVER['REMOTE_ADDR'].$time);
+                $query="insert into tokens(uid,valid,token) values(?,'1',?)";
+                $stmt=$conn->prepare($query);
+                $stmt->bind_param("is",$_SESSION['uid'],$token);
+                $stmt->execute();
+                $stmt->close();
+                $_SESSION['token']=$token;
+            }
+        }
+        // $cb = fopen ( "log.html", 'a' );
+        // fwrite ( $cb, "<div class='msgln'><i>User " . $_SESSION ['name'] . " has joined the chat session.</i><br></div>" );
+        // fclose ( $cb );
+    } else {
+        echo '<span class="error">Please Enter a Name</span>';
+    }
+}
+if (isset ( $_GET ['logout'] )) {
+    // $cb = fopen ( "log.html", 'a' );
+    // fwrite ( $cb, "<div class='msgln'><i>User " . $_SESSION ['name'] . " has left the chat session.</i><br></div>" );
+    // fclose ( $cb );
+    $conn= mysqli_connect("localhost","root","","livechat");
+    $query="update students set Status='Away' where id=?";
+    $stmt=$conn->prepare($query);
+    $stmt->bind_param("i",$_SESSION['uid']);
+    $stmt->execute();
+    $stmt->close();
+
+    session_destroy ();
+    header ( "Location: index.php" );
+}
+*/
+
+?>
+
+</head>
+<body>
+<?php
+	if(isset($_SESSION['login'])){
+?>
+
+<div id="wrapper">
 	<div id="menu">
 	<h1>Live Chat!</h1><hr/>
 		<p class="welcome"><b>HI - <a><?php echo $_SESSION['name']; ?></a></b></p>
-		<p class="logout"><a id="exit" href="#" class="btn btn-default">Exit Live Chat</a></p>
+        <p class="logout"><a id="exit" href="#" class="btn btn-default">Exit Live Chat</a></p>
 	<div style="clear: both"></div>
 	</div>
-	</div>
-
-<!--side chat box-->
-	<div class="chat_box">
-		<div class="chat_head"> Chat Box</div>
-		<div class="chat_body"> 
-			<?php
-				$conn= mysqli_connect("localhost","root","","livechat");
-				$status="Available";
-				$query="select id,name from students where status = ?";
-				$stmt=$conn->prepare($query);
-				$stmt->bind_param("s",$status);
-				$stmt->execute();
-				$stmt->bind_result($usid,$nam);
-				while($stmt->fetch())
-				{
-					echo "<div class='user' id='u_<?php echo $usid;?>'>$nam</div>";
-				}
-				$stmt->close();
-			?>
-			<!-- <div class="user"> Abdul Waris</div> -->
-		</div>
-  	</div>
-
-<div class="msg_box" style="right: 290px; display: none;">
-	<div class="msg_head"><?php echo $nam;?>
-		<div class="close">X</div>
-	</div>
-	<div class="msg_wrap">
-		<div class="msg_body">
-			<div class="msg_a">This is from AbdulWaris	</div>
-			<div class="msg_b">This is from Me, and its amazingly kool nah... i know it even i liked it :)</div>
-			<div class="msg_a">Wow, Thats great to hear from you man </div>	
-			<div class="msg_push"></div>
-		</div>
-		<div class="msg_footer"><textarea placeholder="Enter Message Here..." class="msg_input" rows="4"></textarea></div>
-	</div>
-</div>
-<div class="msg_box" style="right: 290px; display: none;">
-	<div class="msg_head"><?php echo $nam;?>
-		<div class="close">X</div>
-	</div>
-	<div class="msg_wrap">
-		<div class="msg_body">
-			<div class="msg_a">This is from AbdulWaris	</div>
-			<div class="msg_b">This is from Me, and its amazingly kool nah... i know it even i liked it :)</div>
-			<div class="msg_a">Wow, Thats great to hear from you man </div>	
-			<div class="msg_push"></div>
-		</div>
-		<div class="msg_footer"><textarea placeholder="Enter Message Here..." class="msg_input" rows="4"></textarea></div>
-	</div>
-</div>
-
-
-	<!-- <div id="chatbox" style="color:black;">
-	<?php
+	<div id="chatbox">
+        <!--<button onclick="scrollWin(0, 50)">Scroll down</button> -->
+    <?php
+        loadmessages();
+        
 		// if (file_exists ( "log.html" ) && filesize ( "log.html" ) > 0) {
 		// $handle = fopen ( "log.html", "r" );
 		// $contents = fread ( $handle, filesize ( "log.html" ) );
@@ -85,10 +156,12 @@ if(isset($_SESSION['login'])){
 		// }
 	?>
 	</div>
-<form name="message" action="">
+<form name="message">
 	<input name="usermsg" class="form-control" type="text" id="usermsg" placeholder="Create A Message" />
 	<input name="submitmsg" class="btn btn-default" type="submit" id="submitmsg" value="Send" />
-</form> -->
+
+</form>
+</div>
 
 <?php
 }
@@ -100,52 +173,26 @@ else if(!isset($_SESSION['login'])){
 $(document).ready(function(){
     $("#exit").click(function(){
         var exit = confirm("Are You Sure You Want To Leave This Page?");
-		if(exit==true)
-		{
-			window.location = 'supportlogin.php?logout=true';
-		}     
-	});
+        if(exit==true){window.location = 'supportportal.php?logout=true';}     
+    });
 });
-$(document).ready(function(){
-
-$('.chat_head').click(function(){
-	$('.chat_body').slideToggle('slow');
+$("#submitmsg").click(function(){
+        var clientmsg = $("#usermsg").val();
+        {
+            $.post("tad.php", {text: clientmsg, sid: <?php$_SESSION['sid']?>});
+            
+            document.getElementById("chatbox").innerHTML='<?php loadmessages(); ?>'
+                    }
+    return false;
 });
-$('.msg_head').click(function(){
-	$('.msg_wrap').slideToggle('slow');
-});
+// var height = 0;
 
-$('.close').click(function(){
-	$('.msg_box').hide();
-});
-
-$('.user').click(function(){
-
-
-	$('.msg_wrap').show();
-	$('.msg_box').show();
-});
-
-$('textarea').keypress(
-function(e){
-	if (e.keyCode == 13)
-	{
-		e.preventDefault();
-		var msg = $(this).val();
-		$(this).val('');
-		if(msg!='')
-		$('<div class="msg_b">'+msg+'</div>').insertBefore('.msg_push');
-		$('.msg_body').scrollTop($('.msg_body')[0].scrollHeight);
-	}
-});
-
-});
-// $("#submitmsg").click(function(){
-//         var clientmsg = $("#usermsg").val();
-//         $.post("post.php", {text: clientmsg});             
-//         $("#usermsg").attr("value", "");
-//         loadLog;
-//     return false;
+// $('div .msgln').each(function(i, value){
+//     height += parseInt($(this).height());
 // });
+
+// height += '';
+// $('div').animate({scrollTop: height});
 </script>
+</body>
 </html>
